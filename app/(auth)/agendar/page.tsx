@@ -36,7 +36,7 @@ export default async function AgendarPage() {
         <CardContent className="flex flex-col gap-3">
           <Button
             nativeButton={false}
-            render={<Link href="/login" />}
+            render={<Link href="/login?next=%2F%3Fagendar%3D1" />}
             className={`${bebas.className} bg-gradient-to-b from-[#dfb96f] to-[#b9863c] text-base tracking-wide text-[#241a0a] shadow-lg shadow-black/30 transition-transform hover:scale-[1.02]`}
           >
             Sim, entrar
@@ -44,7 +44,7 @@ export default async function AgendarPage() {
           <Button
             nativeButton={false}
             variant="outline"
-            render={<Link href="/cadastro" />}
+            render={<Link href="/cadastro?next=%2F%3Fagendar%3D1" />}
             className={`${bebas.className} border-[#c9a15a]/40 bg-transparent text-base tracking-wide text-[#f0e9da] hover:bg-white/5`}
           >
             Não, cadastre-se agora

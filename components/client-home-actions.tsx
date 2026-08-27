@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarPlus, ChevronDown, ListChecks } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,14 +28,22 @@ export function ClientHomeActions({
   services,
   barbers,
   appointments,
+  autoOpenBooking,
 }: {
   fullName: string;
   services: ServiceOption[];
   barbers: Barber[];
   appointments: AppointmentRow[];
+  autoOpenBooking?: boolean;
 }) {
-  const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(Boolean(autoOpenBooking));
   const [agendamentosOpen, setAgendamentosOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (autoOpenBooking) router.replace("/", { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

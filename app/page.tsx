@@ -3,11 +3,14 @@ import { Bebas_Neue } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import {
   CalendarDays,
+  CalendarCheck,
   ChevronRight,
   Scissors,
   UserRound,
   Warehouse,
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { ClientHomeActions } from "@/components/client-home-actions";
 import { HeroBookingButton } from "@/components/hero-booking-button";
 import type { AppointmentRow } from "@/app/cliente/meus-agendamentos/appointments-modal";
@@ -77,7 +80,12 @@ function HeroArt() {
   );
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ agendar?: string }>;
+}) {
+  const { agendar } = await searchParams;
   const supabase = await createClient();
   const [{ data: services }, { data: userData }] = await Promise.all([
     supabase.from("services").select("*").eq("active", true).order("name"),
@@ -119,6 +127,16 @@ export default async function Home() {
 
   const isClient = Boolean(user && profile?.role === "client");
 
+  const now = new Date();
+  const nextAppointment = appointments
+    .filter((a) => (a.status === "confirmed" || a.status === "pending") && new Date(a.start_time) > now)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+  const nextAppointmentServiceLabel = nextAppointment
+    ? nextAppointment.appointment_services?.length
+      ? nextAppointment.appointment_services.map((s) => s.service_name).join(" + ")
+      : (nextAppointment.service?.name ?? "")
+    : "";
+
   return (
     <div
       className={`flex min-h-screen flex-1 flex-col bg-[#080705] text-[#e7e0d2] ${isClient ? "pb-20" : ""}`}
@@ -143,6 +161,7 @@ export default async function Home() {
                 services={services ?? []}
                 barbers={barbers}
                 appointments={appointments}
+                autoOpenBooking={agendar === "1"}
               />
             ) : user ? (
               <Link
@@ -167,6 +186,23 @@ export default async function Home() {
           </div>
         </div>
       </header>
+
+      {nextAppointment && (
+        <div className="border-b border-[#c9a15a]/20 bg-[#141110]">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+            <CalendarCheck className="size-5 shrink-0 text-[#c9a15a]" />
+            <p className="text-sm text-[#e7e0d2]">
+              Você tem um agendamento para{" "}
+              <span className="font-semibold text-[#f0e9da]">
+                {format(new Date(nextAppointment.start_time), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+              </span>
+              {nextAppointmentServiceLabel && (
+                <span className="text-[#9c9184]"> · {nextAppointmentServiceLabel}</span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         <section className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-20">

@@ -79,7 +79,8 @@ export async function registerAction(
     return { error: "Conta criada, mas não foi possível entrar automaticamente. Faça login." };
   }
 
-  redirect("/");
+  const next = formData.get("next");
+  redirect(typeof next === "string" && next ? next : "/");
 }
 
 export type ForgotPasswordState = { error?: string; success?: boolean } | undefined;
