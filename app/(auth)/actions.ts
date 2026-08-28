@@ -30,10 +30,8 @@ export async function loginAction(
     return { error: "Telefone ou data de nascimento incorretos" };
   }
 
-  const next = formData.get("next");
-  if (typeof next === "string" && next) {
-    redirect(next);
-  }
+  const nextParam = formData.get("next");
+  const next = typeof nextParam === "string" && nextParam ? nextParam : null;
 
   if (signInData.user) {
     const { data: profile } = await supabase
@@ -42,11 +40,14 @@ export async function loginAction(
       .eq("id", signInData.user.id)
       .single();
     if (profile?.role === "barber") {
-      redirect("/barbeiro/dashboard");
+      // Um barbeiro sempre cai no painel dele — "next" só é respeitado se já
+      // apontar pra dentro do /barbeiro (ex: acesso direto a uma página
+      // protegida), nunca pra um destino de cliente como "/?agendar=1".
+      redirect(next && next.startsWith("/barbeiro") ? next : "/barbeiro/dashboard");
     }
   }
 
-  redirect("/");
+  redirect(next ?? "/");
 }
 
 export async function registerAction(
