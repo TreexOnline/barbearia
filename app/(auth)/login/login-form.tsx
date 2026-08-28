@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateMaskInput } from "@/components/date-mask-input";
 
 const bebas = Bebas_Neue({ weight: "400", subsets: ["latin"], display: "swap" });
 
@@ -45,14 +46,10 @@ export function LoginForm({ next }: { next?: string }) {
             <Label htmlFor="password" className="text-[#e7e0d2]">
               Data de nascimento
             </Label>
-            <Input
+            <DateMaskInput
               id="password"
               name="password"
-              type="text"
-              inputMode="numeric"
-              placeholder="DD/MM/AAAA"
               required
-              autoComplete="off"
               className="border-[#c9a15a]/25 bg-white/[0.02] text-[#f0e9da] placeholder:text-[#7d7364] focus-visible:border-[#c9a15a]/60 focus-visible:ring-[#c9a15a]/20"
             />
           </div>
