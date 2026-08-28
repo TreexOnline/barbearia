@@ -22,7 +22,7 @@ export async function loginAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     phone: normalizeAuthPhone(parsed.data.phone),
     password: parsed.data.password,
   });
@@ -31,7 +31,22 @@ export async function loginAction(
   }
 
   const next = formData.get("next");
-  redirect(typeof next === "string" && next ? next : "/");
+  if (typeof next === "string" && next) {
+    redirect(next);
+  }
+
+  if (signInData.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", signInData.user.id)
+      .single();
+    if (profile?.role === "barber") {
+      redirect("/barbeiro/dashboard");
+    }
+  }
+
+  redirect("/");
 }
 
 export async function registerAction(
