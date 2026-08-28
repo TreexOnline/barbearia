@@ -71,6 +71,80 @@ export async function getAvailableSlotsAction({
   return { slots: slots.map((s) => s.toISOString()) };
 }
 
+export async function getUnavailableDaysAction({
+  barberId,
+  serviceIds,
+  year,
+  month,
+  excludeAppointmentId,
+}: {
+  barberId: string;
+  serviceIds: string[];
+  year: number;
+  month: number; // 1-12
+  excludeAppointmentId?: string;
+}): Promise<{ unavailableDates: string[]; error?: string }> {
+  const supabase = await createClient();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const monthStr = String(month).padStart(2, "0");
+  const monthStart = `${year}-${monthStr}-01`;
+  const monthEnd = `${year}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+
+  let appointmentsQuery = supabase
+    .from("appointments")
+    .select("start_time, end_time")
+    .eq("barber_id", barberId)
+    .neq("status", "cancelled")
+    .gte("start_time", `${monthStart}T00:00:00`)
+    .lte("start_time", `${monthEnd}T23:59:59`);
+  if (excludeAppointmentId) {
+    appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
+  }
+
+  const [{ data: services }, { data: schedules }, { data: timeOff }, { data: appointments }] =
+    await Promise.all([
+      supabase.from("services").select("duration_minutes").in("id", serviceIds),
+      supabase.from("barber_schedules").select("weekday, start_time, end_time").eq("barber_id", barberId),
+      supabase
+        .from("barber_time_off")
+        .select("date, start_time, end_time")
+        .eq("barber_id", barberId)
+        .gte("date", monthStart)
+        .lte("date", monthEnd),
+      appointmentsQuery,
+    ]);
+
+  if (!services || services.length !== serviceIds.length) {
+    return { unavailableDates: [], error: "Serviço não encontrado" };
+  }
+  const totalDuration = services.reduce((sum, s) => sum + s.duration_minutes, 0);
+
+  const busyBlocks = (appointments ?? []).map((a) => ({
+    start: new Date(a.start_time),
+    end: new Date(a.end_time),
+  }));
+
+  const unavailableDates: string[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateISO = `${year}-${monthStr}-${String(d).padStart(2, "0")}`;
+    const weekday = new Date(Date.UTC(year, month - 1, d)).getUTCDay();
+    const slots = getAvailableSlots({
+      day: new Date(`${dateISO}T12:00:00`),
+      serviceDurationMinutes: totalDuration,
+      workingBlocks: (schedules ?? [])
+        .filter((s) => s.weekday === weekday)
+        .map((s) => ({ startTime: s.start_time, endTime: s.end_time })),
+      timeOffBlocks: (timeOff ?? [])
+        .filter((t) => t.date === dateISO)
+        .map((t) => ({ startTime: t.start_time, endTime: t.end_time })),
+      busyBlocks,
+    });
+    if (slots.length === 0) unavailableDates.push(dateISO);
+  }
+
+  return { unavailableDates };
+}
+
 export type CreateAppointmentState = { error?: string; success?: boolean } | undefined;
 
 export async function createAppointmentAction(

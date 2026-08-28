@@ -85,7 +85,7 @@ export function ClientHomeActions({
 
       <DarkScope>
         <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Agendar horário</DialogTitle>
             </DialogHeader>

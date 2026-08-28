@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import Link from "next/link";
 import { Bebas_Neue } from "next/font/google";
 import { registerAction } from "../actions";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PasswordStrengthMeter } from "@/components/password-strength-meter";
+import { DateMaskInput } from "@/components/date-mask-input";
 
 const bebas = Bebas_Neue({ weight: "400", subsets: ["latin"], display: "swap" });
 
@@ -17,7 +17,6 @@ const fieldClassName =
 
 export function RegisterForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(registerAction, undefined);
-  const [password, setPassword] = useState("");
 
   return (
     <Card className="w-full max-w-sm border-[#c9a15a]/25 bg-white/[0.03] ring-[#c9a15a]/10">
@@ -62,42 +61,10 @@ export function RegisterForm({ next }: { next?: string }) {
             <Label htmlFor="birthDate" className="text-[#e7e0d2]">
               Data de nascimento
             </Label>
-            <Input
-              id="birthDate"
-              name="birthDate"
-              type="date"
-              required
-              className={fieldClassName}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password" className="text-[#e7e0d2]">
-              Senha
-            </Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={fieldClassName}
-            />
-            <PasswordStrengthMeter password={password} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="confirmPassword" className="text-[#e7e0d2]">
-              Confirmar senha
-            </Label>
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-              autoComplete="new-password"
-              className={fieldClassName}
-            />
+            <DateMaskInput id="birthDate" name="birthDate" required className={fieldClassName} />
+            <p className="text-xs text-[#9c9184]">
+              Você vai usar sua data de nascimento para entrar depois — guarde ela!
+            </p>
           </div>
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
           <Button

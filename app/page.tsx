@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Bebas_Neue } from "next/font/google";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -49,33 +50,16 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function HeroArt() {
   return (
-    <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-[#c9a15a]/20 bg-gradient-to-b from-[#141110] to-[#050403] sm:aspect-[4/3]">
-      <div className="absolute inset-x-0 top-0 h-2/3 bg-[radial-gradient(ellipse_at_top,rgba(217,180,106,0.22),transparent_65%)]" />
-      <svg
-        viewBox="0 0 200 160"
-        className="absolute left-1/2 top-8 h-10 w-10 -translate-x-1/2 text-[#c9a15a]"
-        fill="currentColor"
-      >
-        <path d="M90 0h20v20h-20zM70 30h60v14H70z" />
-      </svg>
-      <svg
-        viewBox="0 0 240 220"
-        className="absolute bottom-0 left-1/2 h-4/5 w-4/5 -translate-x-1/2 text-[#c9a15a]/90"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="70" y="30" width="80" height="70" rx="10" opacity="0.9" />
-        <rect x="60" y="20" width="30" height="18" rx="6" opacity="0.9" />
-        <rect x="45" y="70" width="20" height="55" rx="8" opacity="0.7" />
-        <rect x="155" y="70" width="20" height="55" rx="8" opacity="0.7" />
-        <rect x="90" y="100" width="40" height="55" rx="6" opacity="0.8" />
-        <rect x="70" y="150" width="80" height="12" rx="4" />
-        <rect x="105" y="155" width="10" height="45" />
-        <ellipse cx="110" cy="205" rx="55" ry="10" opacity="0.6" />
-      </svg>
+    <div className="relative mx-auto aspect-square w-full max-w-md lg:mx-0">
+      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(201,161,90,0.25),transparent_70%)] blur-3xl" />
+      <Image
+        src="/garage-logo.png"
+        alt="Garage Barbershop"
+        fill
+        sizes="(min-width: 1024px) 28rem, 90vw"
+        className="relative object-contain drop-shadow-[0_25px_60px_rgba(0,0,0,0.65)]"
+        priority
+      />
     </div>
   );
 }
@@ -107,7 +91,14 @@ export default async function Home({
 
     if (profile?.role === "client") {
       const [{ data: barberRows }, { data: appointmentRows }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name").eq("role", "barber").order("full_name"),
+        // Só barbeiros que já configuraram horário de atendimento aparecem pro
+        // cliente escolher — evita mostrar contas administrativas sem agenda
+        // (ex: dono que nunca atende) como opção de barbeiro.
+        supabase
+          .from("profiles")
+          .select("id, full_name, barber_schedules!inner(id)")
+          .eq("role", "barber")
+          .order("full_name"),
         supabase
           .from("appointments")
           .select(
@@ -116,7 +107,7 @@ export default async function Home({
           .eq("client_id", user.id)
           .order("start_time", { ascending: false }),
       ]);
-      barbers = barberRows ?? [];
+      barbers = [...new Map((barberRows ?? []).map((b) => [b.id, { id: b.id, full_name: b.full_name }])).values()];
       appointments = (appointmentRows ?? []).map((a) => ({
         ...a,
         service: Array.isArray(a.service) ? a.service[0] : a.service,
@@ -187,23 +178,6 @@ export default async function Home({
         </div>
       </header>
 
-      {nextAppointment && (
-        <div className="border-b border-[#c9a15a]/20 bg-[#141110]">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-            <CalendarCheck className="size-5 shrink-0 text-[#c9a15a]" />
-            <p className="text-sm text-[#e7e0d2]">
-              Você tem um agendamento para{" "}
-              <span className="font-semibold text-[#f0e9da]">
-                {format(new Date(nextAppointment.start_time), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
-              </span>
-              {nextAppointmentServiceLabel && (
-                <span className="text-[#9c9184]"> · {nextAppointmentServiceLabel}</span>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
       <main className="flex-1">
         <section className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-20">
           <div>
@@ -245,6 +219,21 @@ export default async function Home({
                 <CalendarDays className="size-5" />
                 AGENDAR AGORA
               </Link>
+            )}
+
+            {nextAppointment && (
+              <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#c9a15a]/40 bg-[#c9a15a]/10 px-4 py-3.5">
+                <CalendarCheck className="size-6 shrink-0 text-[#c9a15a]" />
+                <p className="text-sm text-[#e7e0d2] sm:text-base">
+                  Você tem um agendamento para{" "}
+                  <span className={`${bebas.className} text-base tracking-wide text-[#f0e9da] sm:text-lg`}>
+                    {format(new Date(nextAppointment.start_time), "EEEE, dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                  {nextAppointmentServiceLabel && (
+                    <span className="text-[#c9a15a]"> · {nextAppointmentServiceLabel}</span>
+                  )}
+                </p>
+              </div>
             )}
           </div>
 

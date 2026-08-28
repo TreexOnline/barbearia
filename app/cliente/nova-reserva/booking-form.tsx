@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { createAppointmentAction, getAvailableSlotsAction } from "./actions";
+import { createAppointmentAction, getAvailableSlotsAction, getUnavailableDaysAction } from "./actions";
 import { ServiceListStep, type ServiceOption } from "./service-picker";
 
 interface Barber {
@@ -35,9 +35,12 @@ export function BookingForm({
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [barberId, setBarberId] = useState(() => (hasSingleBarber ? barbers[0].id : ""));
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [month, setMonth] = useState<Date>(new Date());
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
+  const [unavailableDates, setUnavailableDates] = useState<string[]>([]);
   const [loadingSlots, startLoadingSlots] = useTransition();
+  const [loadingDays, startLoadingDays] = useTransition();
   const [state, formAction, pending] = useActionState(createAppointmentAction, undefined);
 
   useEffect(() => {
@@ -54,6 +57,23 @@ export function BookingForm({
       setSlots(result.slots);
     });
   }, [serviceIds, barberId, date]);
+
+  const serviceIdsKey = serviceIds.join(",");
+  useEffect(() => {
+    startLoadingDays(async () => {
+      setUnavailableDates([]);
+      if (serviceIds.length === 0 || !barberId) return;
+      const result = await getUnavailableDaysAction({
+        barberId,
+        serviceIds,
+        year: month.getFullYear(),
+        month: month.getMonth() + 1,
+      });
+      if (result.error) return;
+      setUnavailableDates(result.unavailableDates);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceIdsKey, barberId, month]);
 
   useEffect(() => {
     if (state?.error) toast.error(state.error);
@@ -144,7 +164,11 @@ export function BookingForm({
             mode="single"
             selected={date}
             onSelect={setDate}
-            disabled={{ before: new Date() }}
+            month={month}
+            onMonthChange={setMonth}
+            disabled={[{ before: new Date() }, (d) => unavailableDates.includes(format(d, "yyyy-MM-dd"))]}
+            modifiers={{ full: (d) => unavailableDates.includes(format(d, "yyyy-MM-dd")) }}
+            modifiersClassNames={{ full: "text-red-500 opacity-70 line-through" }}
             locale={ptBR}
             className="w-full"
             classNames={{
@@ -159,6 +183,11 @@ export function BookingForm({
             }}
             style={{ "--cell-size": "3rem" } as React.CSSProperties}
           />
+          {loadingDays && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" /> Verificando dias disponíveis...
+            </p>
+          )}
 
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Horário</label>

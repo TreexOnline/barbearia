@@ -43,14 +43,16 @@ export function LoginForm({ next }: { next?: string }) {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password" className="text-[#e7e0d2]">
-              Senha
+              Data de nascimento
             </Label>
             <Input
               id="password"
               name="password"
-              type="password"
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
               required
-              autoComplete="current-password"
+              autoComplete="off"
               className="border-[#c9a15a]/25 bg-white/[0.02] text-[#f0e9da] placeholder:text-[#7d7364] focus-visible:border-[#c9a15a]/60 focus-visible:ring-[#c9a15a]/20"
             />
           </div>
@@ -64,11 +66,6 @@ export function LoginForm({ next }: { next?: string }) {
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-[#9c9184]">
-          <Link href="/esqueci-senha" className="text-[#c9a15a] underline underline-offset-4">
-            Esqueci minha senha
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-[#9c9184]">
           Não tem uma conta?{" "}
           <Link href="/cadastro" className="text-[#c9a15a] underline underline-offset-4">
             Cadastre-se

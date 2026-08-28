@@ -31,7 +31,7 @@ export function HeroBookingButton({
       </button>
       <DarkScope>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Agendar horário</DialogTitle>
             </DialogHeader>
