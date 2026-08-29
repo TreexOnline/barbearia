@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, UserCog, ChevronRight } from "lucide-react";
+import { Users, UserCog, MessageCircle, ChevronRight } from "lucide-react";
 
 const ITEMS = [
   {
@@ -15,6 +15,12 @@ const ITEMS = [
     label: "Usuários",
     description: "Veja todos os clientes e barbeiros cadastrados",
     icon: Users,
+  },
+  {
+    href: "/barbeiro/configuracoes/whatsapp",
+    label: "WhatsApp",
+    description: "Conecte o número que envia os avisos de agendamento",
+    icon: MessageCircle,
   },
 ];
 

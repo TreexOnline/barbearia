@@ -1,3 +1,5 @@
+import { EVOLUTION_INSTANCE, getEvolutionConfig } from "./evolution";
+
 /**
  * Envio de WhatsApp via Evolution API (https://doc.evolution-api.com).
  * Endpoint padrão: POST {EVOLUTION_API_URL}/message/sendText/{instance}
@@ -10,24 +12,22 @@ export async function sendWhatsApp({
   phone: string; // formato: 55DDDNUMERO (só dígitos)
   message: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const baseUrl = process.env.EVOLUTION_API_URL;
-  const apiKey = process.env.EVOLUTION_API_KEY;
-  const instance = process.env.EVOLUTION_INSTANCE;
+  const config = getEvolutionConfig();
 
-  if (!baseUrl || !apiKey || !instance) {
+  if (!config) {
     console.warn("Evolution API não configurada — WhatsApp não enviado.");
     return { ok: false, error: "Evolution API não configurada" };
   }
 
   const number = phone.replace(/\D/g, "");
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/message/sendText/${instance}`;
+  const endpoint = `${config.baseUrl}/message/sendText/${EVOLUTION_INSTANCE}`;
 
   try {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: apiKey,
+        apikey: config.apiKey,
       },
       body: JSON.stringify({
         number,
