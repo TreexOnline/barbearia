@@ -165,7 +165,7 @@ export async function createAppointmentAction(
 
   const [{ data: services }, { data: barber }] = await Promise.all([
     supabase.from("services").select("id, duration_minutes, name, price").in("id", parsed.data.serviceIds),
-    supabase.from("profiles").select("full_name").eq("id", parsed.data.barberId).single(),
+    supabase.from("profiles").select("full_name, phone").eq("id", parsed.data.barberId).single(),
   ]);
   if (!services || services.length !== parsed.data.serviceIds.length) {
     return { error: "Um dos serviços selecionados não foi encontrado" };
@@ -220,6 +220,7 @@ export async function createAppointmentAction(
     clientEmail: user.email ?? "",
     clientPhone: profile.phone,
     barberName: barber.full_name,
+    barberPhone: barber.phone,
     serviceName: orderedServices.map((s) => s.name).join(" + "),
     startTime,
   });
@@ -237,7 +238,7 @@ export async function rescheduleAppointmentAction(
   const { data: current } = await supabase
     .from("appointments")
     .select(
-      "service:services(name, duration_minutes), barber:profiles!appointments_barber_id_fkey(full_name), appointment_services(service_name, duration_minutes)"
+      "service:services(name, duration_minutes), barber:profiles!appointments_barber_id_fkey(full_name, phone), appointment_services(service_name, duration_minutes)"
     )
     .eq("id", appointmentId)
     .eq("client_id", user.id)
@@ -284,6 +285,7 @@ export async function rescheduleAppointmentAction(
     clientEmail: user.email ?? "",
     clientPhone: profile.phone,
     barberName: barber?.full_name ?? "",
+    barberPhone: barber?.phone ?? null,
     serviceName,
     startTime,
   });

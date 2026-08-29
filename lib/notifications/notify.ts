@@ -12,6 +12,7 @@ interface AppointmentNotificationInput {
   clientEmail: string;
   clientPhone: string | null;
   barberName: string;
+  barberPhone: string | null;
   serviceName: string;
   startTime: Date;
 }
@@ -37,6 +38,21 @@ function buildMessage(input: AppointmentNotificationInput): string {
   }
 }
 
+/** Mensagem enviada pro barbeiro (não pro cliente) sobre o mesmo evento. */
+function buildBarberMessage(input: AppointmentNotificationInput): string {
+  const when = format(input.startTime, "EEEE, dd/MM 'às' HH:mm", { locale: ptBR });
+  switch (input.type) {
+    case "confirmation":
+      return `Novo agendamento: ${input.clientName} marcou ${input.serviceName} para ${when}.`;
+    case "reminder":
+      return `Lembrete: você tem ${input.serviceName} com ${input.clientName} hoje às ${format(input.startTime, "HH:mm")}.`;
+    case "cancellation":
+      return `${input.clientName} cancelou o horário de ${input.serviceName} que seria em ${when}.`;
+    case "rescheduled":
+      return `${input.clientName} remarcou ${input.serviceName} para ${when}.`;
+  }
+}
+
 /**
  * Dispara email + WhatsApp de forma best-effort (não lança erro em caso de
  * falha de envio) e registra o resultado em notification_log.
@@ -50,6 +66,11 @@ export async function notifyAppointment(input: AppointmentNotificationInput) {
       ? sendEmail({ to: input.clientEmail, subject: SUBJECTS[input.type], html: `<p>${message}</p>` })
       : Promise.resolve({ ok: false, error: "Sem email" }),
     input.clientPhone ? sendWhatsApp({ phone: input.clientPhone, message }) : Promise.resolve({ ok: false, error: "Sem telefone" }),
+    // Aviso pro barbeiro, best-effort — não entra no notification_log (essa
+    // tabela acompanha só as notificações enviadas ao cliente).
+    input.barberPhone
+      ? sendWhatsApp({ phone: input.barberPhone, message: buildBarberMessage(input) })
+      : Promise.resolve({ ok: false, error: "Sem telefone" }),
   ]);
 
   const logEntries = [

@@ -19,7 +19,7 @@ export async function updateAppointmentStatusAction(appointmentId: string, statu
 
   const { data: appointment, error } = await query
     .select(
-      "id, start_time, client_id, client:profiles!appointments_client_id_fkey(full_name, phone), service:services(name), barber:profiles!appointments_barber_id_fkey(full_name), appointment_services(service_name)"
+      "id, start_time, client_id, client:profiles!appointments_client_id_fkey(full_name, phone), service:services(name), barber:profiles!appointments_barber_id_fkey(full_name, phone), appointment_services(service_name)"
     )
     .single();
 
@@ -49,6 +49,7 @@ export async function updateAppointmentStatusAction(appointmentId: string, statu
       clientEmail: authUser?.user?.email ?? "",
       clientPhone: client?.phone ?? null,
       barberName: barber?.full_name ?? "",
+      barberPhone: barber?.phone ?? null,
       serviceName,
       startTime: new Date(appointment.start_time),
     });
@@ -138,7 +139,7 @@ export async function createAppointmentForClientAction(
   const supabase = await createClient();
   const [{ data: services }, { data: barber }, { data: client }] = await Promise.all([
     supabase.from("services").select("id, duration_minutes, name, price").in("id", parsed.data.serviceIds),
-    supabase.from("profiles").select("full_name").eq("id", barberUser.id).single(),
+    supabase.from("profiles").select("full_name, phone").eq("id", barberUser.id).single(),
     supabase.from("profiles").select("full_name, phone").eq("id", clientId).single(),
   ]);
   if (!services || services.length !== parsed.data.serviceIds.length) {
@@ -195,6 +196,7 @@ export async function createAppointmentForClientAction(
     clientEmail: authUser?.user?.email ?? "",
     clientPhone: client.phone,
     barberName: barber.full_name,
+    barberPhone: barber.phone,
     serviceName: orderedServices.map((s) => s.name).join(" + "),
     startTime,
   });

@@ -14,7 +14,7 @@ export async function cancelAppointmentAction(appointmentId: string) {
     .update({ status: "cancelled" })
     .eq("id", appointmentId)
     .eq("client_id", user.id)
-    .select("id, start_time, service:services(name), barber:profiles!appointments_barber_id_fkey(full_name)")
+    .select("id, start_time, service:services(name), barber:profiles!appointments_barber_id_fkey(full_name, phone)")
     .single();
 
   if (error || !appointment) {
@@ -33,6 +33,7 @@ export async function cancelAppointmentAction(appointmentId: string) {
     clientEmail: user.email ?? "",
     clientPhone: profile.phone,
     barberName: barber?.full_name ?? "",
+    barberPhone: barber?.phone ?? null,
     serviceName: service?.name ?? "",
     startTime: new Date(appointment.start_time),
   });
