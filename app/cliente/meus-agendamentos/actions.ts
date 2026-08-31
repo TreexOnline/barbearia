@@ -35,6 +35,7 @@ export async function cancelAppointmentAction(appointmentId: string) {
     barberName: barber?.full_name ?? "",
     barberPhone: barber?.phone ?? null,
     serviceName: service?.name ?? "",
+    price: null,
     startTime: new Date(appointment.start_time),
   });
 

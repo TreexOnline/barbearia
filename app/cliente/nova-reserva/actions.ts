@@ -222,6 +222,7 @@ export async function createAppointmentAction(
     barberName: barber.full_name,
     barberPhone: barber.phone,
     serviceName: orderedServices.map((s) => s.name).join(" + "),
+    price: orderedServices.reduce((sum, s) => sum + s.price, 0),
     startTime,
   });
 
@@ -238,7 +239,7 @@ export async function rescheduleAppointmentAction(
   const { data: current } = await supabase
     .from("appointments")
     .select(
-      "service:services(name, duration_minutes), barber:profiles!appointments_barber_id_fkey(full_name, phone), appointment_services(service_name, duration_minutes)"
+      "service:services(name, duration_minutes, price), barber:profiles!appointments_barber_id_fkey(full_name, phone), appointment_services(service_name, duration_minutes, price)"
     )
     .eq("id", appointmentId)
     .eq("client_id", user.id)
@@ -250,12 +251,13 @@ export async function rescheduleAppointmentAction(
   const items = current.appointment_services?.length
     ? current.appointment_services
     : service
-      ? [{ service_name: service.name, duration_minutes: service.duration_minutes }]
+      ? [{ service_name: service.name, duration_minutes: service.duration_minutes, price: service.price }]
       : [];
   if (items.length === 0) return { error: "Agendamento não encontrado" };
 
   const totalMinutes = items.reduce((sum, i) => sum + i.duration_minutes, 0);
   const serviceName = items.map((i) => i.service_name).join(" + ");
+  const totalPrice = items.reduce((sum, i) => sum + i.price, 0);
 
   const startTime = new Date(newStartTimeISO);
   if (startTime < new Date()) {
@@ -287,6 +289,7 @@ export async function rescheduleAppointmentAction(
     barberName: barber?.full_name ?? "",
     barberPhone: barber?.phone ?? null,
     serviceName,
+    price: totalPrice,
     startTime,
   });
 

@@ -14,6 +14,7 @@ interface AppointmentNotificationInput {
   barberName: string;
   barberPhone: string | null;
   serviceName: string;
+  price: number | null;
   startTime: Date;
 }
 
@@ -24,32 +25,76 @@ const SUBJECTS: Record<NotificationType, string> = {
   rescheduled: "Agendamento remarcado",
 };
 
+const currency = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
 function buildMessage(input: AppointmentNotificationInput): string {
   const when = format(input.startTime, "EEEE, dd/MM 'às' HH:mm", { locale: ptBR });
+  const priceLine = input.price != null ? `\n💰 Valor: ${currency(input.price)}` : "";
   switch (input.type) {
     case "confirmation":
-      return `Olá ${input.clientName}! Seu horário de ${input.serviceName} com ${input.barberName} foi confirmado para ${when}.`;
+      return (
+        `✅ *Agendamento confirmado!*\n\n` +
+        `Olá ${input.clientName}, seu horário foi marcado:\n\n` +
+        `💈 Serviço: ${input.serviceName}\n` +
+        `🧔 Barbeiro: ${input.barberName}\n` +
+        `📅 ${when}${priceLine}\n\n` +
+        `Te esperamos na Garage Barbershop! 🙌`
+      );
     case "reminder":
-      return `Olá ${input.clientName}! Lembrete: você tem ${input.serviceName} com ${input.barberName} hoje às ${format(input.startTime, "HH:mm")}.`;
+      return (
+        `⏰ *Faltam 10 minutos!*\n\n` +
+        `Olá ${input.clientName}, seu horário está chegando:\n\n` +
+        `💈 Serviço: ${input.serviceName}\n` +
+        `🧔 Barbeiro: ${input.barberName}\n` +
+        `📅 Hoje às ${format(input.startTime, "HH:mm")}${priceLine}\n\n` +
+        `Te esperamos aí! 🙌`
+      );
     case "cancellation":
-      return `Olá ${input.clientName}, seu horário de ${input.serviceName} com ${input.barberName} em ${when} foi cancelado.`;
+      return (
+        `❌ *Agendamento cancelado*\n\n` +
+        `Olá ${input.clientName}, seu horário de ${input.serviceName} com ${input.barberName} em ${when} foi cancelado.`
+      );
     case "rescheduled":
-      return `Olá ${input.clientName}! Seu horário de ${input.serviceName} com ${input.barberName} foi remarcado para ${when}.`;
+      return (
+        `🔄 *Agendamento remarcado*\n\n` +
+        `Olá ${input.clientName}, seu horário foi alterado:\n\n` +
+        `💈 Serviço: ${input.serviceName}\n` +
+        `🧔 Barbeiro: ${input.barberName}\n` +
+        `📅 Novo horário: ${when}${priceLine}`
+      );
   }
 }
 
 /** Mensagem enviada pro barbeiro (não pro cliente) sobre o mesmo evento. */
 function buildBarberMessage(input: AppointmentNotificationInput): string {
   const when = format(input.startTime, "EEEE, dd/MM 'às' HH:mm", { locale: ptBR });
+  const priceLine = input.price != null ? `\n💰 Valor: ${currency(input.price)}` : "";
+  const clientPhoneLine = input.clientPhone ? `\n📞 ${input.clientPhone}` : "";
   switch (input.type) {
     case "confirmation":
-      return `Novo agendamento: ${input.clientName} marcou ${input.serviceName} para ${when}.`;
+      return (
+        `🆕 *Novo agendamento!*\n\n` +
+        `👤 Cliente: ${input.clientName}${clientPhoneLine}\n` +
+        `💈 Vai cortar: ${input.serviceName}\n` +
+        `📅 ${when}${priceLine}`
+      );
     case "reminder":
-      return `Lembrete: você tem ${input.serviceName} com ${input.clientName} hoje às ${format(input.startTime, "HH:mm")}.`;
+      return (
+        `⏰ *Faltam 10 minutos!*\n\n` +
+        `👤 Cliente: ${input.clientName}${clientPhoneLine}\n` +
+        `💈 ${input.serviceName}\n` +
+        `📅 Hoje às ${format(input.startTime, "HH:mm")}${priceLine}`
+      );
     case "cancellation":
-      return `${input.clientName} cancelou o horário de ${input.serviceName} que seria em ${when}.`;
+      return `❌ *Cancelado*: ${input.clientName} cancelou ${input.serviceName} que seria em ${when}.`;
     case "rescheduled":
-      return `${input.clientName} remarcou ${input.serviceName} para ${when}.`;
+      return (
+        `🔄 *Remarcado*\n\n` +
+        `👤 Cliente: ${input.clientName}${clientPhoneLine}\n` +
+        `💈 ${input.serviceName}\n` +
+        `📅 Novo horário: ${when}${priceLine}`
+      );
   }
 }
 
@@ -61,9 +106,13 @@ export async function notifyAppointment(input: AppointmentNotificationInput) {
   const message = buildMessage(input);
   const admin = createAdminClient();
 
+  const emailHtml = `<p>${message
+    .replace(/\*(.+?)\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>")}</p>`;
+
   const [emailResult, whatsappResult] = await Promise.all([
     input.clientEmail
-      ? sendEmail({ to: input.clientEmail, subject: SUBJECTS[input.type], html: `<p>${message}</p>` })
+      ? sendEmail({ to: input.clientEmail, subject: SUBJECTS[input.type], html: emailHtml })
       : Promise.resolve({ ok: false, error: "Sem email" }),
     input.clientPhone ? sendWhatsApp({ phone: input.clientPhone, message }) : Promise.resolve({ ok: false, error: "Sem telefone" }),
     // Aviso pro barbeiro, best-effort — não entra no notification_log (essa

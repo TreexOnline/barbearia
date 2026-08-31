@@ -51,6 +51,7 @@ export async function updateAppointmentStatusAction(appointmentId: string, statu
       barberName: barber?.full_name ?? "",
       barberPhone: barber?.phone ?? null,
       serviceName,
+      price: null,
       startTime: new Date(appointment.start_time),
     });
   }
@@ -198,6 +199,7 @@ export async function createAppointmentForClientAction(
     barberName: barber.full_name,
     barberPhone: barber.phone,
     serviceName: orderedServices.map((s) => s.name).join(" + "),
+    price: orderedServices.reduce((sum, s) => sum + s.price, 0),
     startTime,
   });
 
