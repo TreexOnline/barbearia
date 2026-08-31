@@ -53,7 +53,8 @@ function buildMessage(input: AppointmentNotificationInput): string {
     case "cancellation":
       return (
         `❌ *Agendamento cancelado*\n\n` +
-        `Olá ${input.clientName}, seu horário de ${input.serviceName} com ${input.barberName} em ${when} foi cancelado.`
+        `Olá ${input.clientName}, infelizmente seu horário de ${input.serviceName} com ${input.barberName} em ${when} foi cancelado.\n\n` +
+        `Fala com o barbeiro pra saber o motivo, ou agenda um novo horário quando quiser. 🙏`
       );
     case "rescheduled":
       return (
