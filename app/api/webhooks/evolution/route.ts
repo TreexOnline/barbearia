@@ -6,7 +6,7 @@ interface EvolutionWebhookPayload {
   event?: string;
   instance?: string;
   data?: {
-    key?: { remoteJid?: string; fromMe?: boolean };
+    key?: { remoteJid?: string; fromMe?: boolean; id?: string };
     pushName?: string;
     message?: { conversation?: string; extendedTextMessage?: { text?: string } };
     messageType?: string;
@@ -33,16 +33,17 @@ export async function POST(request: NextRequest) {
   const data = payload.data;
   const remoteJid = data?.key?.remoteJid;
   const fromMe = data?.key?.fromMe;
+  const messageId = data?.key?.id;
   const text = data?.message?.conversation ?? data?.message?.extendedTextMessage?.text ?? null;
 
-  if (!remoteJid || fromMe || !text) {
+  if (!remoteJid || fromMe || !text || !messageId) {
     return NextResponse.json({ ok: true });
   }
 
   const phoneRaw = remoteJid.split("@")[0];
 
   try {
-    await handleIncomingMessage({ phoneRaw, text, pushName: data?.pushName ?? null });
+    await handleIncomingMessage({ phoneRaw, text, pushName: data?.pushName ?? null, messageId });
   } catch (err) {
     console.error("Erro no bot do WhatsApp:", err);
   }

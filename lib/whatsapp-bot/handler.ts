@@ -29,6 +29,7 @@ interface SessionData {
   dateMenu?: string[];
   selectedDate?: string;
   timeMenu?: string[];
+  _lastMessageId?: string;
 }
 
 type Step = "awaiting_name" | "awaiting_service" | "awaiting_date" | "awaiting_time";
@@ -218,18 +219,52 @@ async function sendTimeMenu(
   await saveSession(admin, phone, "awaiting_time", { ...session.data, timeMenu });
 }
 
-/** Chamado pelo webhook toda vez que chega uma mensagem de texto de um número. */
+/**
+ * Chamado pelo webhook toda vez que chega uma mensagem de texto de um
+ * número. O Evolution/Baileys costuma disparar o mesmo "messages.upsert"
+ * mais de uma vez pro mesmo id (status pending/delivered/read mudando) —
+ * por isso o dedup por messageId antes de processar de verdade.
+ */
 export async function handleIncomingMessage({
   phoneRaw,
   text,
   pushName,
+  messageId,
 }: {
   phoneRaw: string;
   text: string;
   pushName: string | null;
+  messageId: string;
 }) {
   const phone = normalizeAuthPhone(phoneRaw);
   const admin = createAdminClient();
+
+  const { data: raw } = await admin.from("whatsapp_sessions").select("data").eq("phone", phone).maybeSingle();
+  const lastMessageId = (raw?.data as SessionData | undefined)?._lastMessageId;
+  if (lastMessageId && lastMessageId === messageId) return;
+
+  await processMessage({ phone, text, pushName, admin });
+
+  const { data: after } = await admin.from("whatsapp_sessions").select("data").eq("phone", phone).maybeSingle();
+  if (after) {
+    await admin
+      .from("whatsapp_sessions")
+      .update({ data: { ...(after.data as object), _lastMessageId: messageId } as Json })
+      .eq("phone", phone);
+  }
+}
+
+async function processMessage({
+  phone,
+  text,
+  pushName,
+  admin,
+}: {
+  phone: string;
+  text: string;
+  pushName: string | null;
+  admin: ReturnType<typeof createAdminClient>;
+}) {
   const trimmed = text.trim();
 
   if (/^(cancelar|sair|reiniciar)$/i.test(trimmed)) {
