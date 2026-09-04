@@ -122,7 +122,12 @@ export async function createAppointmentForClientAction(
   const orderedServices = parsed.data.serviceIds.map((id) => services.find((s) => s.id === id)!);
   const totalMinutes = orderedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
 
-  const startTime = new Date(`${parsed.data.date}T${parsed.data.time}:00`);
+  // Offset explícito (-03:00, horário da barbearia) — sem isso, o Date()
+  // interpreta a string no fuso do processo Node. Se o servidor não estiver
+  // rodando em America/Sao_Paulo (ex: produção sem TZ configurado), o
+  // agendamento é salvo 3h adiantado ou atrasado em relação ao que o
+  // barbeiro digitou.
+  const startTime = new Date(`${parsed.data.date}T${parsed.data.time}:00-03:00`);
   if (Number.isNaN(startTime.getTime())) return { error: "Data ou horário inválido" };
   const endTime = new Date(startTime.getTime() + totalMinutes * 60_000);
 
@@ -230,7 +235,12 @@ export async function updateAppointmentAction(
     .single();
   if (!service) return { error: "Serviço não encontrado" };
 
-  const startTime = new Date(`${parsed.data.date}T${parsed.data.time}:00`);
+  // Offset explícito (-03:00, horário da barbearia) — sem isso, o Date()
+  // interpreta a string no fuso do processo Node. Se o servidor não estiver
+  // rodando em America/Sao_Paulo (ex: produção sem TZ configurado), o
+  // agendamento é salvo 3h adiantado ou atrasado em relação ao que o
+  // barbeiro digitou.
+  const startTime = new Date(`${parsed.data.date}T${parsed.data.time}:00-03:00`);
   if (Number.isNaN(startTime.getTime())) return { error: "Data ou horário inválido" };
   const endTime = new Date(startTime.getTime() + service.duration_minutes * 60_000);
 
