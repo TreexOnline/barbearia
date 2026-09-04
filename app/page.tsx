@@ -148,7 +148,7 @@ export default async function Home({
           <div className="flex items-center gap-3 sm:gap-6">
             {isClient ? (
               <ClientHomeActions
-                fullName={profile?.full_name || "Cliente"}
+                fullName={profile?.full_name ?? ""}
                 services={services ?? []}
                 barbers={barbers}
                 appointments={appointments}

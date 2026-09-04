@@ -127,8 +127,8 @@ async function sendDateMenu(
       .select("start_time, end_time")
       .eq("barber_id", barber.id)
       .neq("status", "cancelled")
-      .gte("start_time", `${rangeStart}T00:00:00`)
-      .lte("start_time", `${rangeEnd}T23:59:59`),
+      .gte("start_time", `${rangeStart}T00:00:00-03:00`)
+      .lte("start_time", `${rangeEnd}T23:59:59.999-03:00`),
   ]);
 
   const dateOptions: string[] = [];
@@ -194,8 +194,8 @@ async function sendTimeMenu(
       .select("start_time, end_time")
       .eq("barber_id", barberId)
       .neq("status", "cancelled")
-      .gte("start_time", `${dateStr}T00:00:00`)
-      .lte("start_time", `${dateStr}T23:59:59`),
+      .gte("start_time", `${dateStr}T00:00:00-03:00`)
+      .lte("start_time", `${dateStr}T23:59:59.999-03:00`),
   ]);
 
   const slots = getAvailableSlots({

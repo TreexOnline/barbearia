@@ -13,6 +13,14 @@ export const registerSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/** Login e cadastro unificados: só celular + data de nascimento — o
+ * servidor decide se é pra entrar numa conta existente ou criar uma nova. */
+export const authSchema = z.object({
+  phone: z.string().min(10, "Informe um telefone válido com DDD"),
+  birthDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, "Use o formato DD/MM/AAAA"),
+});
+export type AuthInput = z.infer<typeof authSchema>;
+
 export const bookingSchema = z.object({
   serviceIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um serviço"),
   barberId: z.string().uuid("Selecione um barbeiro"),

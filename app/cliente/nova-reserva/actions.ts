@@ -30,8 +30,10 @@ export async function getAvailableSlotsAction({
     .select("start_time, end_time")
     .eq("barber_id", barberId)
     .neq("status", "cancelled")
-    .gte("start_time", `${dateISO}T00:00:00`)
-    .lte("start_time", `${dateISO}T23:59:59`);
+    // Limites no fuso da barbearia (-03:00) — sem o offset, o Postgres lê a
+    // string como UTC e agendamentos do fim do dia local escapam da checagem.
+    .gte("start_time", `${dateISO}T00:00:00-03:00`)
+    .lte("start_time", `${dateISO}T23:59:59.999-03:00`);
   if (excludeAppointmentId) {
     appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
   }
@@ -95,8 +97,8 @@ export async function getUnavailableDaysAction({
     .select("start_time, end_time")
     .eq("barber_id", barberId)
     .neq("status", "cancelled")
-    .gte("start_time", `${monthStart}T00:00:00`)
-    .lte("start_time", `${monthEnd}T23:59:59`);
+    .gte("start_time", `${monthStart}T00:00:00-03:00`)
+    .lte("start_time", `${monthEnd}T23:59:59.999-03:00`);
   if (excludeAppointmentId) {
     appointmentsQuery = appointmentsQuery.neq("id", excludeAppointmentId);
   }

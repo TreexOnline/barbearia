@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarPlus, ChevronDown, ListChecks } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DarkScope } from "@/components/dark-scope";
 import { logoutAction } from "@/app/(auth)/actions";
+import { updateProfileAction } from "@/app/cliente/perfil/actions";
 import { BookingForm } from "@/app/cliente/nova-reserva/booking-form";
 import { AppointmentsModal, type AppointmentRow } from "@/app/cliente/meus-agendamentos/appointments-modal";
 import type { ServiceOption } from "@/app/cliente/nova-reserva/service-picker";
@@ -36,17 +40,51 @@ export function ClientHomeActions({
   appointments: AppointmentRow[];
   autoOpenBooking?: boolean;
 }) {
-  const [bookingOpen, setBookingOpen] = useState(Boolean(autoOpenBooking));
+  const needsName = !fullName.trim();
+  const [bookingOpen, setBookingOpen] = useState(Boolean(autoOpenBooking) && !needsName);
   const [agendamentosOpen, setAgendamentosOpen] = useState(false);
+  const [nameState, nameFormAction, namePending] = useActionState(updateProfileAction, undefined);
   const router = useRouter();
+  const wantsBookingRef = useRef(Boolean(autoOpenBooking));
 
   useEffect(() => {
     if (autoOpenBooking) router.replace("/", { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (nameState?.success) {
+      // Se a pessoa chegou aqui querendo agendar, abre o agendamento assim
+      // que o nome for salvo (só não abria antes pra não competir com o
+      // modal "como podemos te chamar?").
+      if (wantsBookingRef.current) setBookingOpen(true);
+      router.refresh();
+    }
+  }, [nameState, router]);
+
   return (
     <>
+      <DarkScope>
+        <Dialog open={needsName}>
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Como podemos te chamar?</DialogTitle>
+              <DialogDescription>Só isso — pra gente saber seu nome nos avisos e na agenda.</DialogDescription>
+            </DialogHeader>
+            <form action={nameFormAction} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="fullName">Nome completo</Label>
+                <Input id="fullName" name="fullName" required autoFocus />
+              </div>
+              {nameState?.error && <p className="text-sm text-destructive">{nameState.error}</p>}
+              <Button type="submit" disabled={namePending} className="mt-2">
+                {namePending ? "Salvando..." : "Confirmar"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </DarkScope>
+
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-[#f0e9da] transition-colors hover:text-[#c9a15a]">
           Bem-vindo, {fullName.split(" ")[0] || "Cliente"}

@@ -2,12 +2,70 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loginSchema, registerSchema } from "@/lib/validations";
+import { loginSchema, registerSchema, authSchema } from "@/lib/validations";
 import { normalizeAuthPhone } from "@/lib/phone";
 import { birthDateToISO } from "@/lib/birthdate";
 import { redirect } from "next/navigation";
 
 export type AuthActionState = { error?: string } | undefined;
+
+/**
+ * Entra numa conta existente OU cria uma nova, só com celular + data de
+ * nascimento — sem pedir pra escolher entre "entrar" e "cadastrar-se" e sem
+ * pedir nome (isso fica pra completar depois, se estiver em branco). Usado
+ * pelo botão "Agendar agora" pra clientes deslogados.
+ */
+export async function authAction(
+  _prevState: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const parsed = authSchema.safeParse({
+    phone: formData.get("phone"),
+    birthDate: formData.get("birthDate"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  }
+
+  const birthDateISO = birthDateToISO(parsed.data.birthDate);
+  if (!birthDateISO) {
+    return { error: "Data de nascimento inválida" };
+  }
+
+  const phone = normalizeAuthPhone(parsed.data.phone);
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin.from("profiles").select("id").eq("phone", phone).maybeSingle();
+
+  const supabase = await createClient();
+
+  if (existing) {
+    const { error } = await supabase.auth.signInWithPassword({ phone, password: parsed.data.birthDate });
+    if (error) {
+      return { error: "Telefone ou data de nascimento incorretos" };
+    }
+  } else {
+    const { error: createError } = await admin.auth.admin.createUser({
+      phone,
+      password: parsed.data.birthDate,
+      phone_confirm: true,
+      user_metadata: { birth_date: birthDateISO },
+    });
+    if (createError) {
+      return { error: "Não foi possível criar sua conta. Tente novamente." };
+    }
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      phone,
+      password: parsed.data.birthDate,
+    });
+    if (signInError) {
+      return { error: "Conta criada, mas não foi possível entrar automaticamente. Tente de novo." };
+    }
+  }
+
+  const nextParam = formData.get("next");
+  redirect(typeof nextParam === "string" && nextParam ? nextParam : "/");
+}
 
 export async function loginAction(
   _prevState: AuthActionState,
